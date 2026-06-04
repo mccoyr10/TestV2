@@ -235,7 +235,12 @@ app.post('/api/scan', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Viral Trend Scout running at http://localhost:${PORT}`);
-  if (!API_KEY) console.warn('  WARNING: YOUTUBE_API_KEY not set in .env');
-});
+// Local dev: start the server. Vercel imports this file as a module instead.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Viral Trend Scout running at http://localhost:${PORT}`);
+    if (!API_KEY) console.warn('  WARNING: YOUTUBE_API_KEY not set in .env');
+  });
+}
+
+module.exports = app;
