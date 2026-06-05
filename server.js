@@ -41,7 +41,8 @@ async function resolveChannelId(handleOrId) {
 async function searchChannelVideos(channelId, publishedAfter) {
   const url = `${YT_BASE}/search?part=snippet&channelId=${channelId}` +
     `&publishedAfter=${encodeURIComponent(publishedAfter)}` +
-    `&order=date&type=video&maxResults=50&key=${API_KEY}`;
+    `&order=date&type=video&maxResults=50` +
+    `&relevanceLanguage=en&regionCode=US&key=${API_KEY}`;
   const data = await ytFetch(url);
   return (data.items || []).map(item => ({
     videoId: item.id.videoId,
@@ -55,7 +56,8 @@ async function searchChannelVideos(channelId, publishedAfter) {
 async function searchKeywordVideos(keyword, publishedAfter) {
   const url = `${YT_BASE}/search?part=snippet&q=${encodeURIComponent(keyword)}` +
     `&publishedAfter=${encodeURIComponent(publishedAfter)}` +
-    `&order=viewCount&type=video&maxResults=50&key=${API_KEY}`;
+    `&order=viewCount&type=video&maxResults=50` +
+    `&relevanceLanguage=en&regionCode=US&key=${API_KEY}`;
   const data = await ytFetch(url);
   return (data.items || []).map(item => ({
     videoId: item.id.videoId,
@@ -174,6 +176,12 @@ app.post('/api/scan', async (req, res) => {
       channelAvgMap.set(channelId, computeChannelAverage(views));
     }
 
+    // Global median fallback for keyword-only videos with no channel baseline
+    const allViewCounts = [...statsMap.values()].map(s => s.viewCount).filter(v => v > 0).sort((a, b) => a - b);
+    const globalMedian = allViewCounts.length
+      ? allViewCounts[Math.floor(allViewCounts.length / 2)]
+      : 0;
+
     // 5. Assemble results
     const now = Date.now();
     const videos = [];
@@ -185,7 +193,7 @@ app.post('/api/scan', async (req, res) => {
       const { viewCount } = stats;
       const hoursOld = Math.max((now - Date.parse(stub.publishedAt)) / 3_600_000, 1);
       const velocity = viewCount / hoursOld;
-      const channelAvgViews = channelAvgMap.get(stub.channelId) ?? 0;
+      const channelAvgViews = channelAvgMap.get(stub.channelId) ?? globalMedian;
       const outlierScore = channelAvgViews > 0 ? viewCount / channelAvgViews : 0;
 
       videos.push({
