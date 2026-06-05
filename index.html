@@ -429,6 +429,7 @@
       transition: border-color 0.15s, color 0.15s;
     }
     .ideas-toggle:hover { border-color: #555; color: var(--text); }
+    .ideas-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
     .ideas-panel {
       display: none;
       margin-top: 8px;
@@ -436,19 +437,52 @@
       padding-top: 10px;
     }
     .ideas-panel.open { display: block; }
-    .idea-item { margin-bottom: 10px; }
+
+    .transcript-section { margin-bottom: 12px; }
+    .transcript-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .transcript-hook {
+      font-size: 11px;
+      line-height: 1.5;
+      color: #bbb;
+      font-style: italic;
+      border-left: 2px solid var(--border);
+      padding-left: 8px;
+    }
+    .transcript-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .transcript-tag {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 10px;
+      padding: 2px 7px;
+      color: var(--muted);
+    }
+    .transcript-tag.emotion { border-color: rgba(100,181,246,0.4); color: #90caf9; }
+    .transcript-tag.format  { border-color: rgba(129,199,132,0.4); color: #a5d6a7; }
+
+    .idea-item { margin-bottom: 12px; }
     .idea-item:last-child { margin-bottom: 0; }
     .idea-pillar {
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 3px;
+      margin-bottom: 4px;
     }
     .idea-pillar.finance { color: #4caf50; }
     .idea-pillar.family  { color: #64b5f6; }
     .idea-pillar.build   { color: #ff9800; }
-    .idea-text { font-size: 12px; line-height: 1.45; color: var(--text); }
+    .idea-text { font-size: 12px; line-height: 1.5; color: var(--text); }
+
+    .ideas-loading { font-size: 12px; color: var(--muted); padding: 8px 0; }
+    .ideas-error   { font-size: 12px; color: #ef9a9a; padding: 8px 0; }
 
     /* ── Watchlist view ── */
     #watchlist-view { display: none; margin-top: 4px; }
@@ -631,90 +665,82 @@ const HOOK_PATTERNS = [
   { id: 'mistake',           label: 'Mistake / regret / wish I knew',         regex: /\b(?:biggest?\s+)?(?:mistake|regret|wish\s+i(?:'d|\s+had|\s+knew)|should(?:'ve|\s+have))\b/i },
 ];
 
-const PILLAR_TEMPLATES = {
-  i_did_x_for_time: {
-    finance: '"I saved $500/month for 6 months straight — here\'s exactly what changed in our finances"',
-    family:  '"I put my phone down every night for 30 days — what it did to my marriage and kids"',
-    build:   '"I spent 90 days finishing my garage workshop — the full honest breakdown"',
-  },
-  why_x_ruins_y: {
-    finance: '"Why your 9-5 is actually ruining your chance at financial freedom (and what to do instead)"',
-    family:  '"Why always being \'busy\' is ruining your marriage — a husband\'s wake-up call"',
-    build:   '"Why buying cheap tools is ruining your projects and costing you more in the long run"',
-  },
-  x_things_about: {
-    finance: '"7 things I wish I knew about money before I got married" — your experience as the hook',
-    family:  '"5 things nobody told me about being a husband and a dad at the same time"',
-    build:   '"6 beginner building mistakes I made so you don\'t have to"',
-  },
-  truth_about: {
-    finance: '"The real truth about building wealth on a normal income — no get-rich-quick stuff"',
-    family:  '"The truth about being a \'present\' dad when you\'re also trying to build something"',
-    build:   '"The truth about DIY home projects — time, cost, and what I\'d hire out next time"',
-  },
-  how_i_did: {
-    finance: '"How I paid off $18K in debt while raising a family on one income"',
-    family:  '"How I stopped being a distracted dad and actually started showing up for my kids"',
-    build:   '"How I built a full workshop in my garage for under $800 — step by step"',
-  },
-  what_nobody_tells: {
-    finance: '"What nobody tells you about buying a house — the real costs after closing"',
-    family:  '"What nobody tells you about the first year of marriage — raw and honest"',
-    build:   '"What nobody tells you before you start a big DIY project (I learned the hard way)"',
-  },
-  stop_doing: {
-    finance: '"Stop doing these 4 things with your money if you actually want to build wealth"',
-    family:  '"Stop sacrificing family time for productivity — it\'s not worth what you think"',
-    build:   '"Stop buying this tool first — here\'s the order I\'d build a shop from scratch"',
-  },
-  i_tried: {
-    finance: '"I tried zero-based budgeting for 60 days — here\'s what it actually did to our finances"',
-    family:  '"I tried planning one intentional date night every week for a month — honest results"',
-    build:   '"I tried the $50 tool vs the $200 tool for the same job — here\'s what happened"',
-  },
-  before_after: {
-    finance: '"Our finances: before vs after we finally got on the same page as a couple"',
-    family:  '"My marriage before vs after we had our first kid — what nobody prepares you for"',
-    build:   '"My garage before vs after — 6-month transformation on a real budget (full build)"',
-  },
-  dollar_amount: {
-    finance: '"We cut $600/month from our budget without changing our lifestyle — here\'s how"',
-    family:  '"What it actually costs to raise a child in 2025 — real numbers from a real family"',
-    build:   '"Full cost breakdown: how much it actually cost to finish my basement myself"',
-  },
-  day_challenge: {
-    finance: '"30-day no-spend challenge as a family — what we learned and what we\'d do again"',
-    family:  '"7-day screen-free evenings with my family — what broke first (hint: it was me)"',
-    build:   '"I set a 30-day build challenge for myself — one project a week, full results"',
-  },
-  mistake: {
-    finance: '"The biggest money mistake I made in my 20s — and how we\'re still recovering"',
-    family:  '"The dad mistake I kept making without realizing it (and how I caught it)"',
-    build:   '"The $1,200 building mistake I made on my first big project — don\'t do this"',
-  },
-};
+// Per-session cache so re-opening a card doesn't re-fetch
+const analysisCache = new Map();
 
-const GENERIC_TEMPLATES = {
-  finance: 'Mirror the format of this video but anchor it in a personal finance moment — a specific number, a turning point, or a family money decision you\'ve lived through',
-  family:  'Take the emotional core of this video and retell it from your POV as a husband and dad — real story, real stakes, your marriage or your kids as the subject',
-  build:   'Recreate this format around an actual project in your shop or home — a build, a tool review, a before/after, or a process you can document on camera',
-};
-
-function detectPattern(title) {
-  for (const p of HOOK_PATTERNS) {
-    if (p.regex.test(title)) return p.id;
-  }
-  return null;
+async function fetchAnalysis(videoId, title) {
+  if (analysisCache.has(videoId)) return analysisCache.get(videoId);
+  const res  = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ videoId, title }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Analysis failed');
+  analysisCache.set(videoId, data);
+  return data;
 }
 
-function getContentIdeas(title) {
-  const id = detectPattern(title);
-  const t  = id ? PILLAR_TEMPLATES[id] : null;
-  return {
-    finance: t?.finance ?? GENERIC_TEMPLATES.finance,
-    family:  t?.family  ?? GENERIC_TEMPLATES.family,
-    build:   t?.build   ?? GENERIC_TEMPLATES.build,
-  };
+function renderAnalysis(data) {
+  const emotionLabel = {
+    transformation: '🔄 Transformation arc',
+    fear_avoidance: '⚠️ Fear / mistake avoidance',
+    aspiration:     '🎯 Aspiration / dream outcome',
+    vulnerability:  '💬 Vulnerable honesty',
+    curiosity:      '🔍 Curiosity / counter-intuitive',
+  }[data.dominantEmotion] || data.dominantEmotion;
+
+  const formatLabel = {
+    challenge: '⏱️ Timed challenge',
+    list:      '📋 List / tips format',
+    story:     '📖 Personal story arc',
+    essay:     '🎙️ Direct talk / opinion',
+  }[data.format] || data.format;
+
+  const numsHtml = data.numbers.length
+    ? data.numbers.map(n => `<span class="transcript-tag">${escHtml(n)}</span>`).join('')
+    : '';
+
+  const tagsHtml = (data.topTags || []).length
+    ? data.topTags.map(t => `<span class="transcript-tag">${escHtml(t)}</span>`).join('')
+    : '';
+
+  const keyPhrasesHtml = (data.keyPhrases || []).length
+    ? data.keyPhrases.map(p => `<div style="font-size:11px;color:#bbb;margin-bottom:4px;padding-left:8px;border-left:2px solid var(--border);">"${escHtml(p)}"</div>`).join('')
+    : '';
+
+  const descHtml = data.descOpening
+    ? `<div class="transcript-section">
+         <div class="transcript-label">What the video is about</div>
+         <div class="transcript-hook">${escHtml(data.descOpening)}${data.descOpening.length >= 220 ? '…' : ''}</div>
+       </div>`
+    : '';
+
+  return `
+${descHtml}
+<div class="transcript-section">
+  <div class="transcript-label">Content signals</div>
+  <div class="transcript-tags">
+    <span class="transcript-tag emotion">${escHtml(emotionLabel)}</span>
+    <span class="transcript-tag format">${escHtml(formatLabel)}</span>
+    ${numsHtml}
+  </div>
+  ${tagsHtml ? `<div class="transcript-tags" style="margin-top:5px;">${tagsHtml}</div>` : ''}
+</div>
+${keyPhrasesHtml ? `<div class="transcript-section"><div class="transcript-label">Key lines from description</div>${keyPhrasesHtml}</div>` : ''}
+<div class="transcript-label" style="margin-bottom:8px;">Content ideas for your brand</div>
+<div class="idea-item">
+  <div class="idea-pillar finance">💵 Personal Finance</div>
+  <div class="idea-text">${escHtml(data.ideas.finance)}</div>
+</div>
+<div class="idea-item">
+  <div class="idea-pillar family">👨‍👩‍👧 Family / Dad Life</div>
+  <div class="idea-text">${escHtml(data.ideas.family)}</div>
+</div>
+<div class="idea-item">
+  <div class="idea-pillar build">🔧 Building &amp; Creating</div>
+  <div class="idea-text">${escHtml(data.ideas.build)}</div>
+</div>`;
 }
 
 function extractHookPatterns(videos) {
@@ -916,7 +942,6 @@ function renderCard(v) {
   const thirdLabel = v.outlierScore > 0 ? 'vs Ch. Avg' : 'Published';
   const thirdVal   = v.outlierScore > 0 ? `${v.outlierScore}&times;` : escHtml(daysAgo(v.publishedAt));
   const saved      = isWatchlisted(v.id);
-  const ideas      = getContentIdeas(v.title);
 
   return `
 <div class="${cls}" data-id="${escHtml(v.id)}">
@@ -938,21 +963,8 @@ function renderCard(v) {
       <div class="stat-value outlier-val">${thirdVal}</div>
     </div>
   </div>
-  <button class="ideas-toggle" data-id="${escHtml(v.id)}">&#128161; Content ideas for your brand</button>
-  <div class="ideas-panel" id="ideas-${escHtml(v.id)}">
-    <div class="idea-item">
-      <div class="idea-pillar finance">&#128176; Personal Finance</div>
-      <div class="idea-text">${escHtml(ideas.finance)}</div>
-    </div>
-    <div class="idea-item">
-      <div class="idea-pillar family">&#128106; Family / Dad Life</div>
-      <div class="idea-text">${escHtml(ideas.family)}</div>
-    </div>
-    <div class="idea-item">
-      <div class="idea-pillar build">&#128296; Building &amp; Creating</div>
-      <div class="idea-text">${escHtml(ideas.build)}</div>
-    </div>
-  </div>
+  <button class="ideas-toggle" data-id="${escHtml(v.id)}" data-title="${escHtml(v.title)}">&#128269; Analyze video &amp; get content ideas</button>
+  <div class="ideas-panel" id="ideas-${escHtml(v.id)}"></div>
 </div>`;
 }
 
@@ -1068,15 +1080,41 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Card-level interactions (ideas toggle + save button)
-  document.getElementById('card-list').addEventListener('click', e => {
+  document.getElementById('card-list').addEventListener('click', async e => {
     const toggle = e.target.closest('.ideas-toggle');
     if (toggle) {
-      const panel = document.getElementById('ideas-' + toggle.dataset.id);
+      const videoId = toggle.dataset.id;
+      const title   = toggle.dataset.title;
+      const panel   = document.getElementById('ideas-' + videoId);
       if (!panel) return;
-      const open = panel.classList.toggle('open');
-      toggle.textContent = open ? '▲ Hide ideas' : '💡 Content ideas for your brand';
+
+      // If already open, close it
+      if (panel.classList.contains('open')) {
+        panel.classList.remove('open');
+        toggle.textContent = '🔍 Analyze transcript & get content ideas';
+        return;
+      }
+
+      // Open and fetch if not yet loaded
+      panel.classList.add('open');
+      toggle.textContent = '▲ Hide ideas';
+      toggle.disabled = true;
+
+      if (!panel.dataset.loaded) {
+        panel.innerHTML = '<div class="ideas-loading">⏳ Fetching video details and analyzing…</div>';
+        try {
+          const data = await fetchAnalysis(videoId, title);
+          panel.innerHTML = renderAnalysis(data);
+          panel.dataset.loaded = '1';
+        } catch (err) {
+          panel.innerHTML = `<div class="ideas-error">⚠️ ${escHtml(err.message)}</div>`;
+        }
+      }
+
+      toggle.disabled = false;
       return;
     }
+
     const saveBtn = e.target.closest('.save-btn');
     if (saveBtn) {
       e.preventDefault();
