@@ -153,24 +153,13 @@ function buildIdeas({ hook, numbers, dominantEmotion, format, keyPhrases, title 
   const num1 = numbers[0] || 'a specific number from your own experience';
   const num2 = numbers[1] || 'a second data point';
 
-  const formatNote = FORMAT_LABEL[format];
-  const emotionNote = EMOTION_LABEL[dominantEmotion];
-
-  // Truncate hook for display
-  const hookSnippet = hook.length > 120 ? hook.slice(0, 120) + '…' : hook;
-
   const pillarIdeas = {
-    finance: buildPillarIdea('finance', { format, dominantEmotion, num1, num2, title, hookSnippet }),
-    family:  buildPillarIdea('family',  { format, dominantEmotion, num1, num2, title, hookSnippet }),
-    build:   buildPillarIdea('build',   { format, dominantEmotion, num1, num2, title, hookSnippet }),
+    finance: buildPillarIdea('finance', { format, dominantEmotion, num1, num2, title }),
+    family:  buildPillarIdea('family',  { format, dominantEmotion, num1, num2, title }),
+    build:   buildPillarIdea('build',   { format, dominantEmotion, num1, num2, title }),
   };
 
-  return {
-    formatNote,
-    emotionNote,
-    hookSnippet,
-    ...pillarIdeas,
-  };
+  return { ...pillarIdeas };
 }
 
 function buildPillarIdea(pillar, { format, dominantEmotion, num1, num2, title }) {
