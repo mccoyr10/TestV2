@@ -365,6 +365,134 @@
       #metrics { grid-template-columns: repeat(2, 1fr); }
       .config-row { flex-direction: column; }
     }
+
+    /* ── Hook Pattern Panel ── */
+    #hook-panel {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin-top: 16px;
+    }
+    #hook-panel h2 {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .hook-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .hook-chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      padding: 4px 12px;
+    }
+    .hook-chip-count { color: var(--hot); font-weight: 700; margin-right: 5px; }
+
+    /* ── Video card (make position relative for save btn) ── */
+    .video-card { position: relative; }
+
+    /* ── Save / Watchlist button ── */
+    .save-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1;
+      padding: 3px 8px;
+      transition: border-color 0.15s, color 0.15s;
+      z-index: 2;
+    }
+    .save-btn:hover { border-color: var(--outlier); color: var(--outlier); }
+    .save-btn.saved { border-color: var(--outlier); color: var(--outlier); }
+
+    /* ── Content Ideas per card ── */
+    .ideas-toggle {
+      margin-top: 10px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 5px 10px;
+      width: 100%;
+      text-align: left;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .ideas-toggle:hover { border-color: #555; color: var(--text); }
+    .ideas-panel {
+      display: none;
+      margin-top: 8px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+    .ideas-panel.open { display: block; }
+    .idea-item { margin-bottom: 10px; }
+    .idea-item:last-child { margin-bottom: 0; }
+    .idea-pillar {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+    .idea-pillar.finance { color: #4caf50; }
+    .idea-pillar.family  { color: #64b5f6; }
+    .idea-pillar.build   { color: #ff9800; }
+    .idea-text { font-size: 12px; line-height: 1.45; color: var(--text); }
+
+    /* ── Watchlist view ── */
+    #watchlist-view { display: none; margin-top: 4px; }
+    .watchlist-empty { text-align: center; padding: 60px 0; color: var(--muted); }
+    .watchlist-empty p { margin-top: 8px; font-size: 13px; }
+    .watchlist-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .watchlist-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .watchlist-title:hover { color: var(--accent); }
+    .watchlist-meta { font-size: 12px; color: var(--muted); }
+    .watchlist-notes {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 12px;
+      padding: 8px 10px;
+      width: 100%;
+      resize: vertical;
+      min-height: 52px;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    .watchlist-notes:focus { border-color: var(--accent); }
+    .watchlist-remove {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 11px;
+      align-self: flex-end;
+      padding: 0;
+    }
+    .watchlist-remove:hover { color: var(--accent); }
+    #watchlist-count-badge { color: var(--outlier); }
   </style>
 </head>
 <body>
@@ -441,6 +569,11 @@
     </div>
   </div>
 
+  <div id="hook-panel">
+    <h2>&#128269; Hook Patterns Found</h2>
+    <div class="hook-list" id="hook-list"></div>
+  </div>
+
   <div id="results">
     <div class="results-toolbar">
       <div class="tabs">
@@ -448,6 +581,7 @@
         <button class="tab-btn" data-tab="outliers">Outliers</button>
         <button class="tab-btn" data-tab="keyword">Keyword Hits</button>
         <button class="tab-btn" data-tab="channel">Channel Hits</button>
+        <button class="tab-btn" data-tab="watchlist">&#9733; Watchlist <span id="watchlist-count-badge"></span></button>
       </div>
       <span class="results-count" id="results-count"></span>
       <div class="sort-wrapper">
@@ -461,6 +595,7 @@
       </div>
     </div>
     <div id="card-list"></div>
+    <div id="watchlist-view"><div id="watchlist-items"></div></div>
   </div>
 
 </div>
@@ -479,6 +614,207 @@ const state = {
   sortBy: 'velocity',
   loading: false,
 };
+
+// ── Hook Patterns ──────────────────────────────────────────────────────────
+const HOOK_PATTERNS = [
+  { id: 'i_did_x_for_time',  label: 'I [did X] for [time period]',           regex: /\bi\s+[\w\s]+for\s+\d+\s*(?:days?|weeks?|months?|years?|hours?)/i },
+  { id: 'why_x_ruins_y',     label: 'Why [X] is ruining your [Y]',            regex: /\bwhy\s+.+\s+(?:is|are)\s+(?:ruining|killing|destroying|hurting)\s+your\b/i },
+  { id: 'x_things_about',    label: '[N] things / reasons / ways',            regex: /\b\d+\s+(?:things?|reasons?|ways?|tips?|mistakes?|steps?|secrets?|hacks?)\b/i },
+  { id: 'truth_about',       label: 'The truth about [X]',                    regex: /\bthe\s+(?:real\s+)?truth\s+(?:about|behind)\b/i },
+  { id: 'how_i_did',         label: 'How I [achieved result]',                regex: /\bhow\s+i\s+(?:made?|built?|paid?|saved?|earned?|lost?|grew?|went from|turned)\b/i },
+  { id: 'what_nobody_tells', label: 'What nobody tells you about [X]',        regex: /\bwhat\s+(?:no\s*one|nobody)\s+(?:tells?|shows?|talks? about)\b/i },
+  { id: 'stop_doing',        label: 'Stop [doing X]',                         regex: /\bstop\s+(?:doing|buying|wasting|spending|trying)\b/i },
+  { id: 'i_tried',           label: 'I tried [X] — here\'s what happened',    regex: /\bi\s+(?:tried|tested|used|spent)\s+.+(?:so you|here.?s what|and here|and this)\b/i },
+  { id: 'before_after',      label: 'Before vs After / transformation',       regex: /\b(?:before\s+(?:vs?\.?|and|&)\s+after|transformation|went from .+ to)\b/i },
+  { id: 'dollar_amount',     label: 'Specific dollar / number result hook',   regex: /\$[\d,]+|\b\d[\d,]+\s*(?:dollars?|k\b|million|views?|subscribers?)\b/i },
+  { id: 'day_challenge',     label: '[N]-day challenge / experiment',         regex: /\b\d+\s*-?\s*day\s+(?:challenge|experiment|journey|transformation)\b/i },
+  { id: 'mistake',           label: 'Mistake / regret / wish I knew',         regex: /\b(?:biggest?\s+)?(?:mistake|regret|wish\s+i\s+knew|should have)\b/i },
+];
+
+const PILLAR_TEMPLATES = {
+  i_did_x_for_time: {
+    finance: 'I invested $X every week for [time] — exactly what happened to my portfolio',
+    family:  'I said yes to every family activity for [time] — what it did to our relationship',
+    build:   'I worked on one project every day for [time] — honest results',
+  },
+  why_x_ruins_y: {
+    finance: 'Why your savings account is actually ruining your wealth-building',
+    family:  'Why hustle culture is ruining your marriage (a husband\'s honest take)',
+    build:   'Why buying cheap tools is ruining your projects (and costing more long-term)',
+  },
+  x_things_about: {
+    finance: '[N] money mistakes I made in my 20s — and how to avoid them',
+    family:  '[N] things I wish I knew before becoming a husband and dad',
+    build:   '[N] beginner building mistakes that cost me way too much',
+  },
+  truth_about: {
+    finance: 'The real truth about passive income nobody talks about',
+    family:  'The truth about work-life balance as a husband and father',
+    build:   'The truth about DIY vs hiring a contractor (real numbers)',
+  },
+  how_i_did: {
+    finance: 'How I paid off $X in debt while supporting a family on one income',
+    family:  'How I became a more present dad without quitting my job',
+    build:   'How I built [X] on a $500 budget — full honest breakdown',
+  },
+  what_nobody_tells: {
+    finance: 'What nobody tells you about buying your first home as a young family',
+    family:  'What nobody tells you about the first year of marriage',
+    build:   'What nobody tells you about starting a workshop from scratch',
+  },
+  stop_doing: {
+    finance: 'Stop buying these 5 things if you want to actually build wealth',
+    family:  'Stop doing this one thing if you want a stronger marriage',
+    build:   'Stop making this mistake on every woodworking / DIY project',
+  },
+  i_tried: {
+    finance: 'I tried every budgeting method for 30 days — here\'s what actually worked for our family',
+    family:  'I tried being the "yes dad" for a whole week — completely honest results',
+    build:   'I tried cheap vs expensive tools for the same exact project',
+  },
+  before_after: {
+    finance: 'My financial situation: before vs after 1 year of intentional spending',
+    family:  'Our marriage before vs after having kids — raw and honest',
+    build:   'Garage transformation: before vs after (full build walkthrough)',
+  },
+  dollar_amount: {
+    finance: 'How we cut $[X]/month from our budget without feeling it',
+    family:  'What it actually costs to raise a kid — real numbers, no fluff',
+    build:   'I built [X] for $[amount] — here\'s the full material breakdown',
+  },
+  day_challenge: {
+    finance: '30-day no-spend challenge: what we learned about our money habits as a family',
+    family:  '7-day phone-free evenings challenge — what happened to our family',
+    build:   '30-day build challenge: one small project every single day',
+  },
+  mistake: {
+    finance: 'My biggest money mistake — and how we recovered as a family',
+    family:  'The parenting mistake I keep making and how I\'m fixing it',
+    build:   'The biggest building mistake I ever made (and how to avoid it)',
+  },
+};
+
+const GENERIC_TEMPLATES = {
+  finance: 'Adapt this format to a money or wealth-building lesson for your audience',
+  family:  'Translate this concept into a husband / dad / family relationship story',
+  build:   'Riff on this format for a hands-on project, DIY build, or creative process video',
+};
+
+function detectPattern(title) {
+  for (const p of HOOK_PATTERNS) {
+    if (p.regex.test(title)) return p.id;
+  }
+  return null;
+}
+
+function getContentIdeas(title) {
+  const id = detectPattern(title);
+  const t  = id ? PILLAR_TEMPLATES[id] : null;
+  return {
+    finance: t?.finance ?? GENERIC_TEMPLATES.finance,
+    family:  t?.family  ?? GENERIC_TEMPLATES.family,
+    build:   t?.build   ?? GENERIC_TEMPLATES.build,
+  };
+}
+
+function extractHookPatterns(videos) {
+  const counts = {};
+  for (const p of HOOK_PATTERNS) counts[p.id] = 0;
+  for (const v of videos) {
+    for (const p of HOOK_PATTERNS) {
+      if (p.regex.test(v.title)) counts[p.id]++;
+    }
+  }
+  return HOOK_PATTERNS
+    .map(p => ({ ...p, count: counts[p.id] }))
+    .filter(p => p.count > 0)
+    .sort((a, b) => b.count - a.count);
+}
+
+function renderHookPanel(videos) {
+  const patterns = extractHookPatterns(videos);
+  const panel    = document.getElementById('hook-panel');
+  const list     = document.getElementById('hook-list');
+  if (!patterns.length) { panel.style.display = 'none'; return; }
+  list.innerHTML = patterns.map(p =>
+    `<span class="hook-chip"><span class="hook-chip-count">${p.count}</span>${escHtml(p.label)}</span>`
+  ).join('');
+  panel.style.display = 'block';
+}
+
+// ── Watchlist ──────────────────────────────────────────────────────────────
+function loadWatchlist() {
+  try { return JSON.parse(localStorage.getItem('vts_watchlist') || '[]'); }
+  catch { return []; }
+}
+function saveWatchlist(list) {
+  localStorage.setItem('vts_watchlist', JSON.stringify(list));
+}
+function isWatchlisted(id) {
+  return loadWatchlist().some(w => w.id === id);
+}
+function toggleWatchlist(video) {
+  let list = loadWatchlist();
+  if (list.some(w => w.id === video.id)) {
+    list = list.filter(w => w.id !== video.id);
+  } else {
+    list.unshift({ id: video.id, title: video.title, channelName: video.channelName,
+      velocity: video.velocity, viewCount: video.viewCount,
+      savedAt: new Date().toISOString(), notes: '' });
+  }
+  saveWatchlist(list);
+  updateWatchlistBadge();
+}
+function updateWatchlistBadge() {
+  const count = loadWatchlist().length;
+  const badge = document.getElementById('watchlist-count-badge');
+  if (badge) badge.textContent = count ? `(${count})` : '';
+}
+
+let _noteDebounce = null;
+function renderWatchlistView() {
+  const list      = loadWatchlist();
+  const container = document.getElementById('watchlist-items');
+  if (!list.length) {
+    container.innerHTML = `<div class="watchlist-empty"><strong>No saved ideas yet</strong>
+      <p>Hit the ☆ button on any video card to save it here.</p></div>`;
+    return;
+  }
+  container.innerHTML = list.map(w => `
+    <div class="watchlist-item" data-wid="${escHtml(w.id)}">
+      <a class="watchlist-title" href="https://www.youtube.com/watch?v=${escHtml(w.id)}"
+         target="_blank" rel="noopener noreferrer">${escHtml(w.title)}</a>
+      <div class="watchlist-meta">
+        ${escHtml(w.channelName)} &middot; ${fmt(Math.round(w.velocity))}/hr &middot; ${fmt(w.viewCount)} views &middot; saved ${daysAgo(w.savedAt)}
+      </div>
+      <textarea class="watchlist-notes" data-wid="${escHtml(w.id)}"
+                placeholder="How will you adapt this for your brand? (auto-saves)">${escHtml(w.notes)}</textarea>
+      <button class="watchlist-remove" data-wid="${escHtml(w.id)}">Remove</button>
+    </div>`).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('watchlist-items').addEventListener('input', e => {
+    const ta = e.target.closest('.watchlist-notes');
+    if (!ta) return;
+    clearTimeout(_noteDebounce);
+    _noteDebounce = setTimeout(() => {
+      const list = loadWatchlist();
+      const item = list.find(w => w.id === ta.dataset.wid);
+      if (item) { item.notes = ta.value; saveWatchlist(list); }
+    }, 600);
+  });
+
+  document.getElementById('watchlist-items').addEventListener('click', e => {
+    const btn = e.target.closest('.watchlist-remove');
+    if (!btn) return;
+    const list = loadWatchlist().filter(w => w.id !== btn.dataset.wid);
+    saveWatchlist(list);
+    updateWatchlistBadge();
+    renderWatchlistView();
+    document.getElementById('results-count').textContent = list.length + ' saved';
+  });
+}, { once: true });
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function fmt(n) {
@@ -561,8 +897,9 @@ const sorters = {
 };
 
 function getFilteredSorted() {
+  if (state.activeTab === 'watchlist') return [];
   return [...state.results]
-    .filter(filters[state.activeTab])
+    .filter(filters[state.activeTab] || filters.all)
     .sort(sorters[state.sortBy]);
 }
 
@@ -575,14 +912,17 @@ function renderCard(v) {
   if (v.source === 'channel') badges.push(`<span class="badge ch">Channel</span>`);
   if (v.source === 'both')    badges.push(`<span class="badge ch">Channel</span><span class="badge kw">Keyword</span>`);
 
-  const cls = ['video-card', v.isOutlier && 'is-outlier', v.isHot && 'is-hot'].filter(Boolean).join(' ');
+  const cls        = ['video-card', v.isOutlier && 'is-outlier', v.isHot && 'is-hot'].filter(Boolean).join(' ');
   const thirdLabel = v.outlierScore > 0 ? 'vs Ch. Avg' : 'Published';
   const thirdVal   = v.outlierScore > 0 ? `${v.outlierScore}&times;` : escHtml(daysAgo(v.publishedAt));
+  const saved      = isWatchlisted(v.id);
+  const ideas      = getContentIdeas(v.title);
 
   return `
-<a class="${cls}" href="https://www.youtube.com/watch?v=${escHtml(v.id)}" target="_blank" rel="noopener noreferrer">
+<div class="${cls}" data-id="${escHtml(v.id)}">
+  <button class="save-btn${saved ? ' saved' : ''}" data-id="${escHtml(v.id)}" title="${saved ? 'Remove from Watchlist' : 'Save to Watchlist'}">${saved ? '★' : '☆'}</button>
   <div class="card-badges">${badges.join('')}</div>
-  <div class="card-title">${escHtml(v.title)}</div>
+  <a class="card-title" href="https://www.youtube.com/watch?v=${escHtml(v.id)}" target="_blank" rel="noopener noreferrer">${escHtml(v.title)}</a>
   <div class="card-channel">${escHtml(v.channelName)} &middot; ${escHtml(daysAgo(v.publishedAt))}</div>
   <div class="card-stats">
     <div class="stat">
@@ -598,7 +938,22 @@ function renderCard(v) {
       <div class="stat-value outlier-val">${thirdVal}</div>
     </div>
   </div>
-</a>`;
+  <button class="ideas-toggle" data-id="${escHtml(v.id)}">&#128161; Content ideas for your brand</button>
+  <div class="ideas-panel" id="ideas-${escHtml(v.id)}">
+    <div class="idea-item">
+      <div class="idea-pillar finance">&#128176; Personal Finance</div>
+      <div class="idea-text">${escHtml(ideas.finance)}</div>
+    </div>
+    <div class="idea-item">
+      <div class="idea-pillar family">&#128106; Family / Dad Life</div>
+      <div class="idea-text">${escHtml(ideas.family)}</div>
+    </div>
+    <div class="idea-item">
+      <div class="idea-pillar build">&#128296; Building &amp; Creating</div>
+      <div class="idea-text">${escHtml(ideas.build)}</div>
+    </div>
+  </div>
+</div>`;
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
@@ -673,6 +1028,7 @@ async function runScan() {
 
     document.getElementById('results').style.display = 'block';
     render();
+    renderHookPanel(state.results);
 
   } catch (err) {
     showError('Could not reach the server. Is it running on port 3000?');
@@ -685,6 +1041,7 @@ async function runScan() {
 // ── Boot ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   checkApiStatus();
+  updateWatchlistBadge();
 
   const channelInput = document.getElementById('channel-input');
 
@@ -710,12 +1067,53 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') runScan();
   });
 
+  // Card-level interactions (ideas toggle + save button)
+  document.getElementById('card-list').addEventListener('click', e => {
+    const toggle = e.target.closest('.ideas-toggle');
+    if (toggle) {
+      const panel = document.getElementById('ideas-' + toggle.dataset.id);
+      if (!panel) return;
+      const open = panel.classList.toggle('open');
+      toggle.textContent = open ? '▲ Hide ideas' : '💡 Content ideas for your brand';
+      return;
+    }
+    const saveBtn = e.target.closest('.save-btn');
+    if (saveBtn) {
+      e.preventDefault();
+      const video = state.results.find(v => v.id === saveBtn.dataset.id);
+      if (!video) return;
+      toggleWatchlist(video);
+      const nowSaved = isWatchlisted(video.id);
+      saveBtn.classList.toggle('saved', nowSaved);
+      saveBtn.textContent = nowSaved ? '★' : '☆';
+      saveBtn.title = nowSaved ? 'Remove from Watchlist' : 'Save to Watchlist';
+    }
+  });
+
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       state.activeTab = btn.dataset.tab;
-      render();
+
+      const cardList     = document.getElementById('card-list');
+      const watchlistView = document.getElementById('watchlist-view');
+      const hookPanel    = document.getElementById('hook-panel');
+      const countEl      = document.getElementById('results-count');
+
+      if (state.activeTab === 'watchlist') {
+        cardList.style.display      = 'none';
+        watchlistView.style.display = 'block';
+        hookPanel.style.display     = 'none';
+        renderWatchlistView();
+        const wl = loadWatchlist();
+        countEl.textContent = wl.length + ' saved idea' + (wl.length !== 1 ? 's' : '');
+      } else {
+        cardList.style.display      = 'grid';
+        watchlistView.style.display = 'none';
+        if (state.results.length) hookPanel.style.display = 'block';
+        render();
+      }
     });
   });
 
