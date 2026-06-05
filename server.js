@@ -143,97 +143,88 @@ function analyzeVideoDetail({ description, tags, title }) {
   // Top tags (first 8)
   const topTags = tags.slice(0, 8);
 
-  const ideas = buildIdeas({ numbers, dominantEmotion, format, title });
+  const ideas = buildIdeas({ numbers, dominantEmotion, format, title, keyPhrases, descOpening });
 
   return { descOpening, topTags, numbers, dominantEmotion, format, keyPhrases, ideas };
 }
 
-function buildIdeas({ hook, numbers, dominantEmotion, format, keyPhrases, title }) {
-  // Pull specific numbers for injection, with fallbacks
-  const num1 = numbers[0] || 'a specific number from your own experience';
-  const num2 = numbers[1] || 'a second data point';
-
-  const pillarIdeas = {
-    finance: buildPillarIdea('finance', { format, dominantEmotion, num1, num2, title }),
-    family:  buildPillarIdea('family',  { format, dominantEmotion, num1, num2, title }),
-    build:   buildPillarIdea('build',   { format, dominantEmotion, num1, num2, title }),
-  };
-
-  return { ...pillarIdeas };
+function cleanTopic(title) {
+  return title
+    .replace(/[?!.]{2,}/g, '')
+    .replace(/[^\w\s'"-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 70);
 }
 
-function buildPillarIdea(pillar, { format, dominantEmotion, num1, num2, title }) {
-  const combos = {
+function buildIdeas({ numbers, dominantEmotion, format, title, keyPhrases, descOpening }) {
+  const topic  = cleanTopic(title);
+  const num1   = numbers[0] || '';
+  // A one-sentence context clue from the description, if available
+  const detail = keyPhrases[0] || descOpening?.slice(0, 100) || '';
+
+  return {
+    finance: buildPillarIdea('finance', { topic, format, dominantEmotion, num1, detail }),
+    family:  buildPillarIdea('family',  { topic, format, dominantEmotion, num1, detail }),
+    build:   buildPillarIdea('build',   { topic, format, dominantEmotion, num1, detail }),
+  };
+}
+
+function buildPillarIdea(pillar, { topic, format, dominantEmotion, num1, detail }) {
+  const t = topic; // the actual video topic, used directly in every idea
+
+  // Each pillar has a reframing lens that maps the video's topic to Ricky's world
+  const lens = {
     finance: {
-      challenge_transformation: `"I tracked every dollar our family spent for 30 days — here's the number that shocked me most" (run the same timed-experiment format; anchor it to a real dollar figure like ${num1})`,
-      challenge_fear_avoidance:  `"We did a no-spend month as a family and I almost quit on day 4 — here's the mistake that nearly broke us" (use the challenge format but lead with the moment it almost failed)`,
-      challenge_aspiration:      `"30-day savings challenge: we tried to hit ${num1} in one month on a normal income — full results" (show the goal, the grind, and the real outcome)`,
-      challenge_vulnerability:   `"I publicly tracked our family budget for 30 days — the numbers I almost didn't share" (be radically transparent with real figures)`,
-      challenge_curiosity:       `"We quit buying [specific thing] for 30 days — the result actually surprised me" (counter-intuitive outcome as the payoff)`,
-      list_transformation:       `"5 money moves that changed our financial life — in order of impact" (list format, each point is a before→after shift you personally lived)`,
-      list_fear_avoidance:       `"7 money mistakes I made in my 20s that I'd never make now — real numbers included" (use ${num1} as a concrete anchor in at least one point)`,
-      list_aspiration:           `"6 things we do every month to keep building wealth on a normal income" (practical, repeatable, grounded in your actual household)`,
-      list_vulnerability:        `"5 financial decisions I regret — and what I'd tell myself if I could go back" (honest, no-filter list from your real story)`,
-      list_curiosity:            `"The 4 'obvious' money tips that actually don't work — and what to do instead" (debunk common advice with your personal experience)`,
-      story_transformation:      `"The moment I realized we were doing money completely wrong — and how we fixed it" (single turning-point story, lead with the low point, payoff is the system you built)`,
-      story_fear_avoidance:      `"We almost bought a house we couldn't afford — the number that saved us was ${num1}" (near-miss story with a specific financial figure as the hero)`,
-      story_aspiration:          `"How we went from living paycheck to paycheck to actually having savings — the honest story" (arc: rock bottom → decision → result)`,
-      story_vulnerability:       `"I have to be honest about our finances — here's where we actually are right now" (vulnerability-first, real numbers, no sugarcoating)`,
-      story_curiosity:           `"I did something most financial advisors say never to do — here's what actually happened" (counter-intuitive decision → surprising outcome)`,
-      essay_transformation:      `"Here's the mindset shift that changed how I think about money as a husband and dad" (opinion piece anchored in personal change)`,
-      essay_fear_avoidance:      `"Stop doing this with your money — it's why most families never get ahead" (direct-to-camera warning based on your own past mistake)`,
-      essay_aspiration:          `"What I actually want our financial future to look like — and the plan to get there" (vision piece, specific goal + concrete steps)`,
-      essay_vulnerability:       `"Real talk: we don't have it all figured out — here's where we're struggling financially right now" (honest check-in, invites the audience in)`,
-      essay_curiosity:           `"The financial move that sounds dumb but actually accelerated our savings" (reveal a counter-intuitive strategy with your real result)`,
+      subject:    'our family finances',
+      angle:      'as a husband and dad building wealth on a normal income',
+      adaptation: `what "${t}" means for families trying to get ahead financially`,
     },
     family: {
-      challenge_transformation:  `"I put my phone in a drawer every night for 30 days — here's what it did to my marriage and my kids" (timed challenge, emotional payoff is the relationship change you felt)`,
-      challenge_fear_avoidance:  `"I tried being the 'yes dad' for a week — the day it backfired was a wake-up call" (experiment format, honest about when it went wrong)`,
-      challenge_aspiration:      `"30-day intentional marriage challenge — one thing every day for my wife. Here's what happened." (document the practice and the outcome, specific and personal)`,
-      challenge_vulnerability:   `"I challenged myself to be fully present with my kids for 7 days — I failed more than I expected" (honest about the struggle, not just the wins)`,
-      challenge_curiosity:       `"I let my kids plan one full day for 30 days — the thing they chose every time surprised me" (unexpected result as the hook)`,
-      list_transformation:       `"5 things I changed about how I show up as a husband — and how each one shifted our marriage" (before→after structure per point, grounded in your relationship)`,
-      list_fear_avoidance:       `"7 things I used to do that were quietly damaging my marriage — I didn't see it until too late" (honest, slightly uncomfortable list from your own blind spots)`,
-      list_aspiration:           `"6 habits of the husband and dad I'm actively trying to become" (aspirational but grounded — you're in process, not claiming to have arrived)`,
-      list_vulnerability:        `"5 moments that revealed I wasn't as good a dad as I thought I was" (vulnerable list, earns deep trust from your audience)`,
-      list_curiosity:            `"The 4 marriage tips everyone gives that I think are actually wrong" (debunk common advice from your lived experience)`,
-      story_transformation:      `"The conversation with my wife that changed how I think about being a husband" (single story, one moment that shifted everything)`,
-      story_fear_avoidance:      `"I almost missed what my kid needed most — here's what I almost got wrong" (near-miss parenting story with emotional stakes)`,
-      story_aspiration:          `"This is the kind of dad I want my kids to remember — and the moment I realized I wasn't there yet" (aspirational story anchored in a real wake-up moment)`,
-      story_vulnerability:       `"My wife told me something that hurt — and she was completely right. Here's the story." (lead with conflict, resolve with growth)`,
-      story_curiosity:           `"I asked my kid what their favorite memory of me was — their answer stopped me cold" (unexpected answer as the hook, emotional and real)`,
-      essay_transformation:      `"Here's how my idea of what a 'good husband' looks like has completely changed since we had kids" (opinion + evolution of perspective)`,
-      essay_fear_avoidance:      `"The one thing that kills marriages slowly — and how I almost let it happen to ours" (direct warning from your own near-miss)`,
-      essay_aspiration:          `"The kind of marriage and family culture I'm intentionally trying to build — here's the vision" (share the goal, make it specific and real)`,
-      essay_vulnerability:       `"Being a husband and dad is harder than I let on — here's what I actually struggle with" (honest essay, no performance, just truth)`,
-      essay_curiosity:           `"Most people think being a present dad means spending more time — I think it's something different" (counter-intuitive take from your experience)`,
+      subject:    'my marriage and kids',
+      angle:      'as a husband and father',
+      adaptation: `how "${t}" shows up inside a real marriage and family`,
     },
     build: {
-      challenge_transformation:  `"I committed to finishing my garage workshop in 30 days — here's how it transformed the space (and my routine)" (timed build challenge with a real before→after)`,
-      challenge_fear_avoidance:  `"I challenged myself to only use tools I already owned for one month — the mistakes I made were expensive" (constraint challenge, honest about what went wrong)`,
-      challenge_aspiration:      `"30-day build challenge: one project a week, starting with ${num1} budget — full results" (document the whole month, show the wins and the setbacks)`,
-      challenge_vulnerability:   `"I tried to build [project] in a weekend — it took three and here's why" (honest about underestimating the work, relatable and funny)`,
-      challenge_curiosity:       `"I only used hand tools for 30 days — here's what it forced me to learn" (counter-intuitive constraint leads to a surprising takeaway)`,
-      list_transformation:       `"6 tools that actually changed how I build things — ranked by impact" (before→after framing, which tools leveled you up and why)`,
-      list_fear_avoidance:       `"7 beginner building mistakes I made so you don't have to — with real cost estimates" (use ${num1} as a concrete figure in at least one mistake)`,
-      list_aspiration:           `"The 5 projects I'm building this year — and the order I'm tackling them in" (roadmap-style, specific and documentable)`,
-      list_vulnerability:        `"5 projects I started and didn't finish — and what finally got me to complete them" (honest about the gap between ambition and follow-through)`,
-      list_curiosity:            `"The 4 tools most builders say are essential that I actually never use — and what I use instead" (debunk common wisdom with your experience)`,
-      story_transformation:      `"The project that made me take building seriously — here's how it started and where it led" (origin story of your craft, one pivotal project)`,
-      story_fear_avoidance:      `"I cut the wrong piece and set my project back two weeks — here's the mistake and how I fixed it" (specific mistake story, practical and relatable)`,
-      story_aspiration:          `"I've wanted this workshop setup for 3 years — here's the day I finally started building it" (dream→action story, document the beginning)`,
-      story_vulnerability:       `"I almost gave up on this project halfway through — here's what that moment looked and felt like" (raw honesty about the low point, powerful for builders)`,
-      story_curiosity:           `"I built the same project twice — one cheap, one expensive — here's which one actually held up" (A/B experiment story with a real result)`,
-      essay_transformation:      `"Building things with my hands changed how I think — here's what I didn't expect it to teach me" (broader life lesson through the lens of craft)`,
-      essay_fear_avoidance:      `"Stop buying tools in this order — here's the sequence I wish I'd followed from the beginning" (direct advice, actionable, from your experience)`,
-      essay_aspiration:          `"Here's what I want my shop to look like in two years — and the plan I'm working from" (vision piece, specific and documentable)`,
-      essay_vulnerability:       `"I'm not a professional builder — and I think that actually makes my content more useful. Here's why." (defend the amateur perspective, turn it into a strength)`,
-      essay_curiosity:           `"Most people overbuy for their first shop — here's the minimal setup that actually lets you build anything" (counter-intuitive take, specific and opinionated)`,
+      subject:    'building and creating things',
+      angle:      'as someone who builds and documents the process on camera',
+      adaptation: `how "${t}" connects to building something real with your hands`,
+    },
+  }[pillar];
+
+  // Hook template grid: format × emotion, each using the actual topic (t)
+  const grid = {
+    challenge: {
+      transformation: `"I applied the concept behind '${t}' to ${lens.subject} for 30 days — here's what actually changed" — run the same timed-experiment structure; you're the test subject, show the real before and after${num1 ? `, anchor it to a specific figure like ${num1}` : ''}`,
+      fear_avoidance:  `"I tried my version of '${t}' for a month and here's the day it almost fell apart" — experiment format, lead with the moment of failure, end with the lesson learned ${lens.angle}`,
+      aspiration:      `"30-day challenge: applying '${t}' to ${lens.subject} — full honest results" — show the goal, the grind, and the real outcome${num1 ? ` (real number: ${num1})` : ''}`,
+      vulnerability:   `"I challenged myself to confront '${t}' in my own life for 30 days — here are the parts I almost didn't film" — radically transparent format, don't hide the hard moments`,
+      curiosity:       `"I took the counter-intuitive idea inside '${t}' and tested it on ${lens.subject} — the result surprised me" — the unexpected outcome is the payoff, structure the video around the reveal`,
+    },
+    list: {
+      transformation:  `"[N] ways '${t}' changed how I think about ${lens.subject} — in order of impact" — list format, each point is a real shift you personally lived through${detail ? `, starting from: "${detail}"` : ''}`,
+      fear_avoidance:  `"[N] things '${t}' reveals that most people get completely wrong about ${lens.subject}" — debunk list, each point is a mistake + the correction from your real experience`,
+      aspiration:      `"[N] things I'm now doing differently with ${lens.subject} because of what '${t}' shows is possible" — practical, repeatable steps grounded in your actual household${num1 ? ` and real numbers like ${num1}` : ''}`,
+      vulnerability:   `"[N] honest things '${t}' made me realize about where I actually am with ${lens.subject}" — personal, no-filter list, each point is something you had to admit to yourself`,
+      curiosity:       `"The [N] things about '${t}' that nobody's applying to ${lens.subject} yet" — counter-intuitive list, your take vs. the mainstream, from ${lens.angle}`,
+    },
+    story: {
+      transformation:  `"'${t}' hit close to home — here's the story it reminded me of about ${lens.subject}" — use the same emotional arc as the original; tell a real turning-point story from your own life`,
+      fear_avoidance:  `"'${t}' reminded me of a mistake I made with ${lens.subject} — here's the full story" — near-miss narrative, the stakes are real, the lesson is earned, end with what you'd do differently`,
+      aspiration:      `"'${t}' is exactly why I'm working toward [specific goal with ${lens.subject}] — here's the story behind that decision" — origin story format, connect the viral topic directly to your real ambition`,
+      vulnerability:   `"Watching '${t}' made me want to be more honest about ${lens.subject} — so here it is" — vulnerability-first, lower the mask, show where you actually are right now, not where you want to be`,
+      curiosity:       `"'${t}' made me do something most people wouldn't when it comes to ${lens.subject} — here's what happened" — counter-intuitive personal decision leads to a surprising real outcome`,
+    },
+    essay: {
+      transformation:  `"Here's my honest take on '${t}' — and what it's making me rethink about ${lens.subject} ${lens.angle}" — direct-to-camera opinion piece anchored in a real shift in your thinking${detail ? `; the detail that stuck with me: "${detail}"` : ''}`,
+      fear_avoidance:  `"'${t}' is a warning — here's what it reveals about the mistake most people are making with ${lens.subject}" — direct-to-camera warning grounded in your own experience, not theory`,
+      aspiration:      `"Why '${t}' matters if you're actually trying to build ${lens.subject} — my real take ${lens.angle}" — vision piece, specific and grounded in where you're actually headed, not a vague pep talk`,
+      vulnerability:   `"I need to talk about '${t}' — and what it made me realize about where I actually am with ${lens.subject} right now" — honest check-in, no performance, just truth from ${lens.angle}`,
+      curiosity:       `"Most people are watching '${t}' and missing the real point — here's what it actually means for ${lens.subject} ${lens.angle}" — counter-intuitive take, your specific perspective, not the obvious reaction`,
     },
   };
 
-  const key = `${format}_${dominantEmotion}`;
-  return combos[pillar][key] || combos[pillar][`essay_curiosity`];
+  return grid[format]?.[dominantEmotion] ?? grid.essay.curiosity;
 }
 
 // ── Routes ─────────────────────────────────────────────────────────────────
